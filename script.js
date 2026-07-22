@@ -51,14 +51,37 @@ const menuButton=document.querySelector(".menu-button"),nav=document.querySelect
 menuButton.addEventListener("click",()=>{const open=nav.classList.toggle("open");menuButton.setAttribute("aria-expanded",String(open));menuButton.querySelector(".sr-only").textContent=open?"Close menu":"Open menu"});
 nav.querySelectorAll("a").forEach(link=>link.addEventListener("click",()=>{nav.classList.remove("open");menuButton.setAttribute("aria-expanded","false")}));
 
-document.querySelector("#audit-form").addEventListener("submit",event=>{
+const auditForm=document.querySelector("#audit-form");
+const auditButton=auditForm.querySelector('button[type="submit"]');
+const formNote=auditForm.querySelector(".form-note");
+const consentLabel=auditForm.querySelector(".consent");
+auditButton.textContent="Send my audit request";
+formNote.textContent="Your request will be emailed to Panhandle Automation. You will receive an acknowledgment after submitting.";
+consentLabel.lastChild.textContent=" I agree to send these details to Panhandle Automation so my request can be reviewed.";
+
+auditForm.addEventListener("submit",async event=>{
   event.preventDefault();
-  const form=new FormData(event.currentTarget),name=String(form.get("name")||"").trim(),business=String(form.get("business")||"").trim(),email=String(form.get("email")||"").trim(),task=String(form.get("task")||"").trim(),tools=String(form.get("tools")||"").trim();
-  const subject=`Free automation audit request${business?` — ${business}`:""}`;
-  const body=`Hi Jesse,\n\nI'd like to request a free automation audit.\n\nName: ${name}\nBusiness: ${business||"Not provided"}\nEmail: ${email}\n\nTask to automate:\n${task}\n\nTools involved: ${tools||"Not sure / not provided"}\n\nPlease reply to discuss whether this is a good fit.\n`;
   const status=document.querySelector("#form-status");
-  status.innerHTML=`Your email app should open with the request ready to review. If it does not, email <a href="mailto:jesse@panhandleautomation.com">jesse@panhandleautomation.com</a> directly.`;
-  status.classList.add("show");status.focus();
-  window.location.href=`mailto:jesse@panhandleautomation.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  auditButton.disabled=true;
+  auditButton.textContent="Sending…";
+  status.textContent="Sending your request…";
+  status.classList.add("show");
+  try{
+    const form=new FormData(auditForm);
+    form.append("_subject","New free automation audit request");
+    form.append("_template","table");
+    form.append("_captcha","false");
+    form.append("_autoresponse","Thanks for requesting a free automation audit from Panhandle Automation. Jesse will review your request and reply by email.");
+    const response=await fetch("https://formsubmit.co/ajax/jesse@panhandleautomation.com",{method:"POST",headers:{Accept:"application/json"},body:form});
+    if(!response.ok) throw new Error("Request failed");
+    auditForm.reset();
+    status.textContent="Thanks — your request was sent. Check your email for confirmation.";
+  }catch(error){
+    status.innerHTML='We could not send the form automatically. Please email <a href="mailto:jesse@panhandleautomation.com">jesse@panhandleautomation.com</a>.';
+  }finally{
+    auditButton.disabled=false;
+    auditButton.textContent="Send my audit request";
+    status.focus();
+  }
 });
 document.querySelector("#year").textContent=new Date().getFullYear();
